@@ -162,7 +162,7 @@ Single binary, non-K8s workload, no probes, no replicas.
 | Mode | Command | Description |
 |------|------|------|
 | Local development | `go run ./cmd/aictl` | Source code running |
-| Go install | `go install github.com/openstrata/ai-cli/cmd/aictl@v1.0.0` | Package management installation |
+| Go install | `go install github.com/open-strata-ai/ai-cli/cmd/aictl@v1.0.0` | Package management installation |
 | Pre-compiled | CI produces multi-platform binaries | Linux/macOS/Windows (amd64/arm64) |
 | Package Manager | `brew install openstrata/aictl` / `apt install aictl` | Future extensions |
 

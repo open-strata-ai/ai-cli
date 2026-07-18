@@ -1,4 +1,4 @@
-module github.com/openstrata/ai-cli
+module github.com/open-strata-ai/ai-cli
 
 go 1.22
 

@@ -204,7 +204,7 @@ sequenceDiagram
 ## 11. Configuration and deployment (including K8s resources/probes)
 
 - **Distribution form**: single binary, multi-platform executable output through `ai-cli` repository CI (`make build` / package management release); non-K8s workload, no probe.
-- **Local development**: `go run ./cmd/aictl`; publish `go install github.com/openstrata/ai-cli/cmd/aictl@v1.0.0` (§16.1 tag).
+- **Local development**: `go run ./cmd/aictl`; publish `go install github.com/open-strata-ai/ai-cli/cmd/aictl@v1.0.0` (§16.1 tag).
 - **Linkage with the platform**: `up` uses Compose through the starter (§9.1 deployment form); standard+/advanced/full uses K8s/ArgoCD through the provisioner (§12.2).
 - **Version Alignment**: `aictl version` output is consistent with `openstrata v1.0.0` + individual SPI `interface_versions` (§16.1).
 
