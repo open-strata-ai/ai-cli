@@ -1,15 +1,15 @@
-# ai-cli · 算法/并发/安全规则
+# ai-cli · Algorithms/Concurrency/Safety Rules
 
-> 对应设计文档 §5（关键算法）、§9（并发与性能）、§12（可观测性/安全）
+> Corresponding design documents §5 (key algorithms), §9 (concurrency and performance), §12 (observability/security)
 
 ---
 
-## §5 关键算法
+## §5 Key algorithm
 
-### 5.1 引导式初始化（`aictl init`）
+### 5.1 Guided initialization (`aictl init`)
 
-**输入**：`--profile <p> --model <m>` + 可选 `--tenant <t>`
-**输出**：`openstrata.yaml`（PlatformManifest）
+**Input**: `--profile <p> --model <m>` + optional `--tenant <t>`
+**Output**: `openstrata.yaml` (PlatformManifest)
 
 ```
 function init(profile, model, tenant):
@@ -19,32 +19,32 @@ function init(profile, model, tenant):
         profile: profile,
         model:   model,
         tenant:  tenant || "default",
-        enabled: skeleton.enabled          // profile 推荐启用列表
+        enabled: skeleton.enabled          //profile recommended enable list
     })
 
-    validateSchema(merged)                  // 对齐 §12.1 schema
+    validateSchema(merged)                  //Alignment §12.1 schema
     writeYAML("openstrata.yaml", merged)
 
     return manifestPath
 ```
 
-**Schema 校验规则**：
-- `profile` 必须为四档之一（starter/standard/advanced/full）
-- `enabled` key 必须在 Registry 中存在
-- `model` 非空（starter 至少选一个 LLM 供应方）
+**Schema validation rules**:
+- `profile` must be one of the four profiles (starter/standard/advanced/full)
+- `enabled` key must exist in Registry
+- `model` is not empty (starter selects at least one LLM supplier)
 
-### 5.2 一键拉起（`aictl up`）
+### 5.2 One-click pull up (`aictl up`)
 
 ```
 function up(profile, detach):
     renderer = selectRenderer(profile)
     // starter → Compose; standard+/advanced/full → Helm/K8s
 
-    plan = callResolver.plan(profile)       // 调用 ai-dependency-resolver
-    result = callProvisioner.apply(plan)     // 调用 ai-provisioning-engine
+    plan = callResolver.plan(profile)       //Call ai-dependency-resolver
+    result = callProvisioner.apply(plan)     //Call ai-provisioning-engine
 
     if not detach:
-        // 本地开发：端口转发 + 探测 Ready
+        //Local development: port forwarding + detection Ready
         portForward(gateway, 8080:80)
         portForward(ui, 3000:80)
 
@@ -54,12 +54,12 @@ function up(profile, detach):
         ], timeout=30s)
 
         if err == nil:
-            openBrowser("http://localhost:3000")  // 聊天 UI
+            openBrowser("http://localhost:3000") // Chat UI
 ```
 
-### 5.3 装配透传
+### 5.3 Assembly pass-through
 
-`plan`/`apply`/`rollback` 子命令**零业务逻辑**——仅收集参数、调用 PlatformClient、格式化输出：
+`plan`/`apply`/`rollback` subcommands **zero business logic** - only collect parameters, call PlatformClient, and format output:
 
 ```
 function plan(enable, tenant):
@@ -73,13 +73,13 @@ function apply(checksum):
     return err
 ```
 
-### 5.4 配置读写
+### 5.4 Configure reading and writing
 
 ```
 function configSet(key, val):
     manifest = loadManifest("openstrata.yaml")
     manifest.set(key, val)
-    validateSchema(manifest)          // 写前校验
+    validateSchema(manifest)          //Verify before writing
     writeYAML("openstrata.yaml", manifest)
 
 function configGet(key):
@@ -87,37 +87,37 @@ function configGet(key):
     return manifest.get(key)
 ```
 
-### 5.5 Profile 合并策略
+### 5.5 Profile merge strategy
 
 ```
-优先级（高→低）：
-1. 命令行 --enable flag（显式指定）
-2. openstrata.yaml 用户已有配置
-3. profiles/<p>.yaml 骨架（external + optional_disabled）
-4. 全局默认（bom.yaml 默认值）
+priority（high→Low）：
+1. command line --enable flag（Explicitly specified）
+2. openstrata.yaml The user has configured
+3. profiles/<p>.yaml skeleton（external + optional_disabled）
+4. global default（bom.yaml default value）
 ```
 
 ---
 
-## §9 并发与性能
+## §9 Concurrency and performance
 
-### 9.1 执行模型
+### 9.1 Execution model
 
-- **框架**：Cobra 单二进制，无长驻服务
-- **每个命令独立进程**：发起即退出（`up --detach` 除外）
-- **CLI 自身极低耗**：cpu 50m / mem 32Mi；重活在远端服务
+- **Framework**: Cobra single binary, no permanent service
+- **Independent process for each command**: exit immediately after initiating (except `up --detach`)
+- **CLI itself is extremely low consumption**: cpu 50m / mem 32Mi; re-activated in remote service
 
-### 9.2 并发策略
+### 9.2 Concurrency strategy
 
-| 场景 | 策略 | 说明 |
+| Scenario | Strategy | Description |
 |------|------|------|
-| `up` 等待多组件 Ready | goroutine + WaitGroup | 并行探测各组件探针 |
-| `model list` | 并行请求 | 同时打多个 model source endpoint |
-| 端口转发 | goroutine 后台 | 启动后不阻塞主流程 |
-| 日志跟踪 | goroutine + chan | 多 app 日志合并输出 |
+| `up` Wait for multiple components to be Ready | goroutine + WaitGroup | Detect each component probe in parallel |
+| `model list` | Parallel requests | Make multiple model source endpoints at the same time |
+| Port forwarding | goroutine background | Does not block the main process after startup |
+| Log tracking | goroutine + chan | Multiple app log merge output |
 
 ```go
-// up 并行等待 Ready
+//up Parallel wait for Ready
 func waitAllReady(components []Component, timeout time.Duration) error {
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
@@ -141,75 +141,75 @@ func waitAllReady(components []Component, timeout time.Duration) error {
 }
 ```
 
-### 9.3 背压/取消
+### 9.3 Backpressure/Cancellation
 
-- 所有命令支持 `context.Context` + `Ctrl-C` 优雅取消
-- `up` 就绪等待超时 30s（§13.4），超时后报错但保留部分状态供排查
-- `--detach` 模式后台运行，不等待直接返回
+- All commands support `context.Context` + `Ctrl-C` graceful cancellation
+- `up` wait timeout is 30s (§13.4). After the timeout, an error will be reported but some status will be retained for troubleshooting.
+- `--detach` mode runs in the background and returns directly without waiting.
 
-### 9.4 性能规则
+### 9.4 Performance Rules
 
-| # | 标题 | 触发条件 | 约束 | 示例 |
+| # | Title | Trigger Condition | Constraints | Example |
 |---|------|----------|------|------|
-| P1 | 并行探测 Ready | `up` 有多个组件 | goroutine + WaitGroup，30s 超时 | `go probe(comp, 30s)` |
-| P2 | 并行打端点 | `model list` 多 source | 同时请求，取最快响应 | `go fetch(src, ch)` |
-| P3 | Context 传播 | 所有命令 | 支持 `Ctrl-C` 取消 | `cmd.SetContext(ctx)` |
-| P4 | 复用 HTTP 连接 | 远端调用 | http.Client 连接池 | `client.Timeout = 10s` |
-| P5 | Profile 本地缓存 | 离线/慢网络 | 本地 ~/.openstrata/cache/ | `if !online: loadCache()` |
-| P6 | 输出分页 | 长列表 | `model list` 默认 20 条/页 | `--limit 20 --offset 0` |
+| P1 | Parallel probe Ready | `up` has multiple components | goroutine + WaitGroup, 30s timeout | `go probe(comp, 30s)` |
+| P2 | Parallel endpoints | `model list` multiple sources | Simultaneous requests, get the fastest response | `go fetch(src, ch)` |
+| P3 | Context propagation | All commands | Supports `Ctrl-C` to cancel | `cmd.SetContext(ctx)` |
+| P4 | Reuse HTTP connection | Remote call | http.Client connection pool | `client.Timeout = 10s` |
+| P5 | Profile local cache | Offline/slow network | Local ~/.openstrata/cache/ | `if !online: loadCache()` |
+| P6 | Output pagination | Long list | `model list` default 20 items/page | `--limit 20 --offset 0` |
 
 ---
 
-## §12 安全
+## §12 Security
 
-### 12.1 安全边界
+### 12.1 Security Boundary
 
-CLI 持平台 API Token，直接操作生产环境。安全隐患集中在：
-- Token 泄漏（本地存储）
-- 未授权的平台操作
-- 输入注入（Manifest 写入）
+The CLI holds the platform API Token and directly operates the production environment. Security risks are concentrated in:
+- Token leakage (local storage)
+- Unauthorized platform operation
+- Input injection (Manifest writing)
 
-### 12.2 安全规则
+### 12.2 Security rules
 
-| # | 标题 | 触发条件 | 约束 | 示例 |
+| # | Title | Trigger Condition | Constraints | Example |
 |---|------|----------|------|------|
-| S1 | Token 加密存储 | auth login / config set token | 不落明文，本地 AES-GCM 加密 | `encrypt(token, machineID)` |
-| S2 | Token 来源 | CLI 启动 | 优先级：env `OPENSTRATA_TOKEN` > `~/.openstrata/tokens/` > `--token` flag | `os.Getenv("OPENSTRATA_TOKEN")` |
-| S3 | Schema 校验写入 | `config set` / `init` | 非法 key/val 拒绝写入 | `if !validKey(key): err("unknown key")` |
-| S4 | Keycloak 鉴权 | 多用户场景 | 所有 API 调用附带 JWT（§4.7.3） | `Authorization: Bearer <jwt>` |
-| S5 | 限流保护 | 反复调用网关 | 基础风控在网关侧约束 CLI 调用频率 | `429 Too Many Requests → retry-after` |
-| S6 | 审计委托 | 所有变更操作 | CLI 本身不做审计，由服务端记录（§13.5） | `POST /v1/apply → 服务端写审计日志` |
-| S7 | Manifest 路径校验 | `init`/`config` | 仅允许当前目录下写入，禁止 `../../` 穿越 | `filepath.Clean(path)` + 白名单 |
-| S8 | 敏感信息脱敏 | `--verbose` 输出 | 不打印 Token/Secret 明文 | `maskSensitive(logEntry)` |
+| S1 | Token encrypted storage | auth login / config set token | No clear text, local AES-GCM encryption | `encrypt(token, machineID)` |
+| S2 | Token source | CLI startup | Priority: env `OPENSTRATA_TOKEN` > `~/.openstrata/tokens/` > `--token` flag | `os.Getenv("OPENSTRATA_TOKEN")` |
+| S3 | Schema verification writing | `config set` / `init` | Illegal key/val rejects writing | `if !validKey(key): err("unknown key")` |
+| S4 | Keycloak Authentication | Multi-user scenarios | All API calls come with JWT (§4.7.3) | `Authorization: Bearer <jwt>` |
+| S5 | Rate limiting protection | Repeated calls to the gateway | Basic risk control restricts the frequency of CLI calls on the gateway side | `429 Too Many Requests → retry-after` |
+| S6 | Audit delegation | All change operations | CLI itself does not perform auditing, it is recorded by the server (§13.5) | `POST /v1/apply → The server writes audit logs` |
+| S7 | Manifest path verification | `init`/`config` | Only allow writing in the current directory, prohibit `../../` traversal | `filepath.Clean(path)` + whitelist |
+| S8 | Desensitization of sensitive information | `--verbose` output | Do not print Token/Secret plain text | `maskSensitive(logEntry)` |
 
-### 12.3 认证流程
+### 12.3 Certification process
 
 ```
-用户 ──→ aictl login ──→ Keycloak OIDC
+user ──→ aictl login ──→ Keycloak OIDC
          │                     │
          │◄── JWT token ───────┘
          │
-         └──→ 加密存储到 ~/.openstrata/tokens/
+         └──→ Encrypted storage to ~/.openstrata/tokens/
 
 aictl up /
 aictl apply ──→ Header: Authorization: Bearer <jwt>
                    │
                    ▼
-              各服务端验证 JWT → 执行操作
+              Verification of each server JWT → perform operations
 ```
 
-### 12.4 风险场景与缓解
+### 12.4 Risk Scenarios and Mitigation
 
-| 风险 | 影响 | 缓解 |
+| Risk | Impact | Mitigation |
 |------|------|------|
-| Token 明文落盘 | 凭证泄漏 | AES-GCM 加密 + 文件权限 0600 |
-| Manifest 注入非法配置 | 破坏运行态 | Schema 校验 + 值域约束 |
-| 未授权 apply 操作 | 非法变更生产环境 | 服务端 JWT 鉴权 + RBAC |
-| 批量命令 DoS | 打垮平台 API | 网关侧限流 + 命令间隔 |
-| 离线环境 token 过期 | 无法操作 | 本地缓存 + refresh token 机制 |
+| Token plain text file | Credential leakage | AES-GCM encryption + file permissions 0600 |
+| Manifest injects illegal configuration | Destroys running state | Schema verification + value range constraints |
+| Unauthorized apply operation | Illegal changes to the production environment | Server-side JWT authentication + RBAC |
+| Batch command DoS | Defeat the platform API | Gateway side flow limit + command interval |
+| Offline environment token expired | Unable to operate | Local cache + refresh token mechanism |
 
 ---
 
-> 命令树与退出码参见 [specs/SPECS.md](../specs/SPECS.md)
-> 包结构与端口定义参见 [arch/ARCH.md](../arch/ARCH.md)
-> 完整流程参见 [design/DESIGN.md §4](../design/DESIGN.md#4-处理流水线--请求路径)
+> For the command tree and exit codes, see [specs/SPECS.md](../specs/SPECS.md)
+> For package structure and port definitions, see [arch/ARCH.md](../arch/ARCH.md)
+> For the complete process, see [design/DESIGN.md §4](../design/DESIGN.md#4-Processing Pipeline--Request Path)

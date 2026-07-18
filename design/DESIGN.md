@@ -1,63 +1,63 @@
-# ai-cli · 详细设计
+#ai-cli · Detailed design
 
 > **repo**: ai-cli
-> **语言·框架**: Go · Cobra + Wire（DDD 四层；CLI 单一二进制）
-> **领域**: developer-tooling（开发者工具链）
-> **optional**: false（核心 · core，开发者入口）
-> **平台版本**: v1.4.0
-> **文档状态**: 草稿
-> **负责人**: OpenStrata 架构组
-> **关联链接**: 本仓 [arch/ARCH.md](../../arch/ARCH.md) · [skills/SKILLS.md](../../skills/SKILLS.md) · [specs/SPECS.md](../../specs/SPECS.md) ；架构设计文档 §4.1.3（SDK 与 CLI · aictl）· §13.4（一键尝鲜）· §12.2（四档预制）· §13.3（装配编排）· §15.6（DDD 分层 / Cobra）· §16（BOM）
+> **Language · Framework**: Go · Cobra + Wire (DDD four layers; CLI single binary)
+> **Field**: developer-tooling (developer tool chain)
+> **optional**: false (core · core, developer entrance)
+> **Platform version**: v1.4.0
+> **Document Status**: Draft
+> **Responsible Person**: OpenStrata Architecture Group
+> **Associated links**: This repository [arch/ARCH.md](../../arch/ARCH.md) · [skills/SKILLS.md](../../skills/SKILLS.md) · [specs/SPECS.md](../../specs/SPECS.md); Architecture design document §4.1.3 (SDK and CLI · aictl) · §13.4 (One-click early adopter) · §12.2 (Four-level prefabrication) · §13.3 (Assembly arrangement) · §15.5 (DDD layering/Cobra) · §16 (BOM)
 
 ---
 
-## 1. 定位与边界（Scope）
+## 1. Positioning and Boundary (Scope)
 
-`ai-cli`（二进制名 `aictl`）是 OpenStrata 面向**开发者与自动化**的统一命令行入口，承载 §4.1.3「CLI（Go/Cobra）」与 §13.4「一键尝鲜」。它把"本地开发/调试"与"与平台交互（装配、部署、评测、配置）"收敛到一个命令面，对上层用户屏蔽引导门户之外的全部底层操作。
+`ai-cli` (binary name `aictl`) is OpenStrata's unified command line entrance for **developers and automation**, carrying §4.1.3 "CLI (Go/Cobra)" and §13.4 "One-click early adopters". It converges "local development/debugging" and "interaction with the platform (assembly, deployment, evaluation, configuration)" into one command plane, shielding upper-level users from all underlying operations except the boot portal.
 
-- **本仓解决的唯一问题**：让开发者用一条命令完成"从 0 拉起平台 → 管理模型/应用 → 跑评测 → 改配置 → 触发自动升级"，无需手拼 Helm Values 或理解九层架构。
-- **必选性**：core（§4.1.3）。是"做自动化"的用户入口；与低代码工作台（业务人员）、SDK（写代码）并列三类接入方式。
-- **与其他 Go 组件的分工**：
-  - **vs ai-gateway-core / ai-tool-registry 等运行时**：CLI 是它们的**调用方/驱动方**，不经 CLI 走运行时数据面；CLI 通过它们暴露的 API/控制面交互。
-  - **vs ai-dependency-resolver / ai-provisioning-engine**：CLI 的 `plan`/`up`/`apply`/`rollback` 子命令透传调用这两者的内核（§13.3 装配链路）。
-  - **vs ai-sdk-go**：SDK 是嵌入宿主应用的库；CLI 是独立可执行，二者都消费 `Gateway`/`LLMProvider` SPI 但形态不同。
+- **The only problem solved by this repository**: Let developers use one command to complete "launch the platform from 0 → manage model/application → run evaluation → change configuration → trigger automatic upgrade" without having to manually spell Helm Values ​​or understand the nine-layer architecture.
+- **Required**: core (§4.1.3). It is the user entrance for "doing automation"; it has three types of access methods in parallel with the low-code workbench (business personnel) and SDK (writing code).
+- **Division of labor with other Go components**:
+- **vs ai-gateway-core / ai-tool-registry and other runtimes**: CLI is their **caller/driver** and does not go through the runtime data plane through CLI; CLI interacts through their exposed API/control plane.
+- **vs ai-dependency-resolver / ai-provisioning-engine**: CLI's `plan`/`up`/`apply`/`rollback` subcommands transparently call the kernel of both (§13.3 Assembly link).
+- **vs ai-sdk-go**: SDK is a library embedded in host applications; CLI is an independent executable. Both consume `Gateway`/`LLMProvider` SPI but in different forms.
 
 ---
 
-## 2. 职责清单
+## 2. Responsibilities List
 
-| # | 职责 | 必选/可选 | 说明 |
+| # | Responsibilities | Required/Optional | Description |
 | --- | --- | --- | --- |
-| R1 | 引导式初始化 | core | `aictl init --profile starter --model qwen-cloud`（§13.4） |
-| R2 | 一键拉起 | core | `aictl up`：Compose/K8s 拉起核心组件（§13.4） |
-| R3 | 装配编排透传 | core | `plan`/`apply`/`rollback` → resolver/provisioner（§13.3） |
-| R4 | 模型管理 | core | 列出/启用/禁用模型供应方（对接网关） |
-| R5 | 应用部署 | core | 部署/调试 Agent（对接 ai-platform-api） |
-| R6 | 评测任务 | optional | 提交/查询评测任务（对接 ai-eval-service，§4.6） |
-| R7 | 配置管理 | core | 读写 PlatformManifest（openstrata.yaml，§12.1） |
-| R8 | 本地调试 | core | 本地起最小运行时、端口转发、日志跟踪 |
+| R1 | Bootstrap initialization | core | `aictl init --profile starter --model qwen-cloud` (§13.4) |
+| R2 | One-click pull up | core | `aictl up`: Compose/K8s pull up core components (§13.4) |
+| R3 | Assembly arrangement pass-through | core | `plan`/`apply`/`rollback` → resolver/provisioner (§13.3) |
+| R4 | Model management | core | List/enable/disable model suppliers (docking gateway) |
+| R5 | Application deployment | core | Deploy/debug Agent (connected to ai-platform-api) |
+| R6 | Evaluation task | optional | Submit/query evaluation task (interconnected with ai-eval-service, §4.6) |
+| R7 | configuration management | core | read and write PlatformManifest (openstrata.yaml, §12.1) |
+| R8 | Local debugging | core | Minimum local runtime, port forwarding, log tracking |
 
 ---
 
-## 3. 核心抽象与接口（core interfaces / 类型定义）
+## 3. Core abstraction and interface (core interfaces / type definition)
 
-CLI 以 **Cobra 命令树** + **应用层用例**组织（§15.6.2）；命令不直接依赖具体服务，经 domain Port 调用。
+The CLI is organized into **Cobra command tree** + **application layer use cases** (§15.5.2); commands do not directly depend on specific services and are called via domain Port.
 
 ```go
 package domain
 
-// 命令上下文：聚合本次调用的能力端口
+//Command context: aggregate the capability ports of this call
 type CLIContext struct {
     Profile   string // starter|standard|advanced|full
     Manifest  ManifestRef
-    Endpoint  string // 平台控制面地址（本地或远程）
+    Endpoint  string //Platform control plane address (local or remote)
 }
 
-// 与平台交互的端口（防腐层在 infrastructure 实现）
+//Port for interacting with the platform (the anti-corruption layer is implemented in infrastructure)
 type PlatformClient interface {
     Init(ctx context.Context, profile, model string) error
     Up(ctx context.Context, profile string) error
-    Plan(ctx context.Context, enable []string, tenant string) (string, error) // 返回 checksum
+    Plan(ctx context.Context, enable []string, tenant string) (string, error) //Return checksum
     Apply(ctx context.Context, checksum string) error
     Rollback(ctx context.Context, component string) error
     ListModels(ctx context.Context) ([]ModelView, error)
@@ -72,64 +72,64 @@ type ModelView struct {
     Health  string
 }
 
-// Cobra 命令仅做参数解析 + 调 PlatformClient，不含业务规则
+//The Cobra command only does parameter parsing + platformclient adjustment, without business rules.
 ```
 
 ---
 
-## 4. 处理流水线 / 请求路径
+## 4. Processing pipeline/request path
 
-以 `aictl init --profile starter --model qwen-cloud && aictl up` 为例（§13.4）：
+Take `aictl init --profile starter --model qwen-cloud && aictl up` as an example (§13.4):
 
 ```mermaid
 flowchart TD
-    A[开发者] -->|"aictl init --profile starter"| B[ai-cli: init 命令]
-    B --> C[生成 openstrata.yaml<br/>写入所选 profile 默认 + 模型]
-    C --> D[校验依赖图（调 resolver 或本地展开）]
-    D --> E[开发者: aictl up]
-    E --> F[up 命令: 选渲染目标<br/>starter→Compose]
-    F --> G[调 provisioner 内核<br/>拉起 网关+模型+Agent引擎+UI]
-    G --> H[端口转发 / 等待 Ready]
-    H --> I[浏览器打开聊天 UI（无需 GPU）]
+    A[Developer] -->|"aictl init --profile starter"| B[ai-cli: init Order]
+    B --> C[generate openstrata.yaml<br/>Write selected profile default + Model]
+    C --> D[Verify dependency graph（tune resolver or expand locally）]
+    D --> E[Developer: aictl up]
+    E --> F[up Order: Select render target<br/>starter→Compose]
+    F --> G[tune provisioner Kernel<br/>pull up gateway+Model+Agentengine+UI]
+    G --> H[port forwarding / wait Ready]
+    H --> I[Open chat in browser UI（No need GPU）]
 ```
 
-> 本地开发与平台交互两条路径：本地调试走 `up`（Compose 单机）；远程交互走 `plan/apply/rollback`（对接 resolver/provisioner，§13.3）。
+> There are two paths for local development and platform interaction: local debugging through `up` (Compose stand-alone); remote interaction through `plan/apply/rollback` (connected to resolver/provisioner, §13.3).
 
 ---
 
-## 5. 关键算法 / 逻辑
+## 5. Key algorithm/logic
 
-### 5.1 引导式初始化
-`init` 读取 `openstrata-meta/profiles/<profile>.yaml` 骨架（§12.2），合并用户 `--model` 选择，生成 `openstrata.yaml`（PlatformManifest）。默认值来自 profile 的 `external` 与 `optional_disabled`（§12.2）。
+### 5.1 Guided initialization
+`init` reads the `openstrata-meta/profiles/<profile>.yaml` skeleton (§12.2), merges the user `--model` selection, and generates `openstrata.yaml` (PlatformManifest). Default values ​​come from profile's `external` and `optional_disabled` (§12.2).
 
-### 5.2 一键拉起
-`up` 据 profile 选渲染目标：starter→Docker Compose；standard+/advanced/full→Helm/K8s（经 provisioner 内核）。完成后自动端口转发并探测 Ready（§13.4「30 秒内拉起」）。
+### 5.2 Pull up with one click
+`up` Select the rendering target according to the profile: starter→Docker Compose; standard+/advanced/full→Helm/K8s (via provisioner kernel). After completion, automatically port forward and detect Ready (§13.4 "Pull up within 30 seconds").
 
-### 5.3 装配透传
-`plan/apply/rollback` 将请求转发至 `ai-dependency-resolver` / `ai-provisioning-engine`（§13.3），CLI 仅负责参数收集、进度展示、结果格式化。
+### 5.3 Assembly pass-through
+`plan/apply/rollback` forwards the request to `ai-dependency-resolver` / `ai-provisioning-engine` (§13.3), and the CLI is only responsible for parameter collection, progress display, and result formatting.
 
-### 5.4 配置读写
-读写 `openstrata.yaml` 时做 schema 校验（对齐 §12.1），非法即报错，避免脏配置下发。
+### 5.4 Configure reading and writing
+When reading and writing `openstrata.yaml`, perform schema verification (alignment §12.1). If it is illegal, an error will be reported to avoid dirty configuration delivery.
 
 ---
 
-## 6. 与外部系统/组件的适配（OSS / SPI Adapter）
+## 6. Adaptation with external systems/components (OSS/SPI Adapter)
 
-| SPI 端口 | 本仓角色 | 外部组件 | 默认 ✅ / 备选 | Adapter |
+| SPI port | Role of this repository | External components | Default ✅ / Alternative | Adapter |
 | --- | --- | --- | --- | --- |
-| `PlatformClient` | 调用方 | `ai-dependency-resolver` / `ai-provisioning-engine` / `ai-platform-api` / `ai-gateway-core` | ✅ | HTTP/gRPC 客户端 Adapter |
-| `Gateway` (1.2.0) | 调用方 | Higress（core，数据面） | ✅ | `GatewayClient`（OpenAI-compatible） |
-| `LLMProvider` (1.0.0) | 间接 | 各模型供应方 | ✅ | 经网关转发 |
-| `Cache` (1.0.0) | 消费方 | Redis（core） | ✅ | 本地状态/缓存 |
-| `Tracing` (1.0.0) | 消费方 | OTel（core） | ✅ | CLI 操作 trace |
+| `PlatformClient` | Caller | `ai-dependency-resolver` / `ai-provisioning-engine` / `ai-platform-api` / `ai-gateway-core` | ✅ | HTTP/gRPC Client Adapter |
+| `Gateway` (1.2.0) | Caller | Higress (core, data plane) | ✅ | `GatewayClient` (OpenAI-compatible) |
+| `LLMProvider` (1.0.0) | Indirect | Each model supplier | ✅ | Forwarded via gateway |
+| `Cache` (1.0.0) | Consumer | Redis (core) | ✅ | Local state/cache |
+| `Tracing` (1.0.0) | Consumer | OTel (core) | ✅ | CLI operation trace |
 
-> CLI 自身**无运行时 OSS 依赖**；所有能力经防腐层客户端 Adapter 访问（§15.6.4）。与 bom.yaml `interface_versions` 对齐：`Gateway: 1.2.0`、`LLMProvider: 1.0.0`。`aictl` 是 §4.1.3 明确的开发者接入方式，与 SDK/低代码并列。
+> The CLI itself has no runtime OSS dependency**; all capabilities are accessed through the anti-corrosion layer client Adapter (§15.5.4). Aligned with bom.yaml `interface_versions`: `Gateway: 1.2.0`, `LLMProvider: 1.0.0`. `aictl` is §4.1.3's explicit developer access method, alongside SDK/low-code.
 
 ---
 
-## 7. API / CLI / 配置接口面
+## 7. API / CLI / Configuration interface
 
-### 7.1 命令树（Cobra）
+### 7.1 Command tree (Cobra)
 ```
 aictl init     --profile <starter|standard|advanced|full> --model <qwen-cloud|openai|...>
 aictl up       [--profile <p>] [--detach]
@@ -140,124 +140,124 @@ aictl model    list | enable | disable <model_id>
 aictl app      deploy <spec.yaml> | logs <app> | port-forward <app>
 aictl eval     submit <task.yaml> | status <id>
 aictl config   get <key> | set <key> <val> | edit
-aictl debug    --local            # 本地最小运行时
-aictl version                    # 打印 aictl + 平台版本（§16.1）
+aictl debug    --local            #local minimum runtime
+aictl version                    #Print aictl + platform version (§16.1)
 ```
-### 7.2 配置片段（本仓 `infrastructure/config/` 局部）
+### 7.2 Configuration fragment (part of this repository `infrastructure/config/`)
 ```yaml
 cli:
   defaultProfile: starter
   metaRepo:
     profilesPath: openstrata-meta/profiles
   platform:
-    endpoint: http://localhost:8080   # 本地 up 后
+    endpoint: http://localhost:8080 # After local up
   output: table                       # table|json|yaml
 ```
-### 7.3 退出码约定
-`0` 成功；`1` 通用错误；`2` 配置/参数错误；`3` 平台未就绪；`4` 装配冲突（来自 resolver）。
+### 7.3 Exit code convention
+`0` success; `1` general error; `2` configuration/parameter error; `3` platform not ready; `4` assembly conflict (from resolver).
 
 ---
 
-## 8. 数据模型与存储
+## 8. Data model and storage
 
-- **本地状态**：`~/.openstrata/` 存当前 profile、`openstrata.yaml` 引用、最近 Plan checksum、token。
-- **远端状态**：配置/评测/部署状态存对应服务端（PostgreSQL 等），CLI 不持有权威数据。
-- **无持久化业务数据**：CLI 为无状态可执行。
-
----
-
-## 9. 并发与性能（goroutine / pool / 背压）
-
-- **框架**：Cobra（§15.6.1），单二进制、无长驻服务。
-- **并发**：`up` 拉起多组件时并行等待 Ready（goroutine + WaitGroup）；`model list` 等可并行打多个端点。
-- **背压/取消**：所有命令支持 `context` + `Ctrl-C` 优雅取消；`up` 超时（默认 30s 就绪等待，§13.4）后报错并保留部分状态供排查。
-- **资源**：CLI 自身极低耗（cpu 50m / mem 32Mi 运行期）；重活在远端。
+- **Local status**: `~/.openstrata/` stores the current profile, `openstrata.yaml` reference, recent Plan checksum, and token.
+- **Remote Status**: The configuration/evaluation/deployment status is stored in the corresponding server (PostgreSQL, etc.), and the CLI does not hold authoritative data.
+- **No persistent business data**: CLI is stateless executable.
 
 ---
 
-## 10. 关键时序图（Mermaid）
+## 9. Concurrency and performance (goroutine / pool / back pressure)
+
+- **Framework**: Cobra (§15.5.1), single binary, no persistent service.
+- **Concurrency**: `up` waits in parallel for Ready (goroutine + WaitGroup) when pulling up multiple components; `model list`, etc. can hit multiple endpoints in parallel.
+- **Backpressure/Cancel**: All commands support `context` + `Ctrl-C` for graceful cancellation; `up` reports an error after timeout (default 30s ready wait, §13.4) and retains part of the status for troubleshooting.
+- **Resources**: CLI itself is extremely low-consuming (cpu 50m / mem 32Mi running time); re-activation is performed on the remote end.
+
+---
+
+## 10. Key sequence diagram (Mermaid)
 
 ```mermaid
 sequenceDiagram
-    participant D as 开发者
+    participant D as Developer
     participant CLI as aictl
-    participant M as 元仓 profiles
+    participant M as Motakura profiles
     participant R as ai-dependency-resolver
     participant P as ai-provisioning-engine
     participant C as Cluster/Compose
 
     D->>CLI: init --profile starter --model qwen-cloud
-    CLI->>M: 读 profiles/starter.yaml
-    M-->>CLI: 骨架 + external/optional_disabled
-    CLI->>CLI: 生成 openstrata.yaml
+    CLI->>M: read profiles/starter.yaml
+    M-->>CLI: skeleton + external/optional_disabled
+    CLI->>CLI: generate openstrata.yaml
     D->>CLI: up
     CLI->>R: plan(starter)
     R-->>CLI: AssemblyPlan + checksum
     CLI->>P: apply(plan)
-    P->>C: 拉起 网关+模型+Agent引擎+UI(Compose)
+    P->>C: pull up gateway+Model+Agentengine+UI(Compose)
     C-->>CLI: Ready
-    CLI-->>D: 打开聊天 UI（无需 GPU）
+    CLI-->>D: Open chat UI（No need GPU）
 ```
 
 ---
 
-## 11. 配置与部署（含 K8s 资源/探针）
+## 11. Configuration and deployment (including K8s resources/probes)
 
-- **分发形态**：单二进制，经 `ai-cli` 仓 CI 产出多平台可执行（`make build` / 包管理发布）；非 K8s 工作负载，无探针。
-- **本地开发**：`go run ./cmd/aictl`；发布 `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0`（§16.1 tag）。
-- **与平台联动**：`up` 在 starter 走 Compose（§9.1 部署形态）；standard+/advanced/full 经 provisioner 走 K8s/ArgoCD（§12.2）。
-- **版本对齐**：`aictl version` 输出与 `openstrata v1.4.0` + 各 SPI `interface_versions` 一致（§16.1）。
-
----
-
-## 12. 可观测性 / 安全
-
-- **可观测性（§4.8）**：CLI 操作经 OTel 上报（core 基础 trace）；`--verbose` 打印请求/响应摘要；操作审计由服务端记录（§13.5）。
-- **安全（§4.7.3 / §4.7.4）**：CLI 持平台 API Token（K8s Secret / Vault，不落明文）；`config set` 写本地加密存储；多用户场景经 Keycloak 鉴权（§4.7.3）；基础风控（限流）在网关侧约束 CLI 调用。
+- **Distribution form**: single binary, multi-platform executable output through `ai-cli` repository CI (`make build` / package management release); non-K8s workload, no probe.
+- **Local development**: `go run ./cmd/aictl`; publish `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0` (§16.1 tag).
+- **Linkage with the platform**: `up` uses Compose through the starter (§9.1 deployment form); standard+/advanced/full uses K8s/ArgoCD through the provisioner (§12.2).
+- **Version Alignment**: `aictl version` output is consistent with `openstrata v1.4.0` + individual SPI `interface_versions` (§16.1).
 
 ---
 
-## 13. 测试策略
+## 12. Observability / Security
 
-- **单元测试**：各命令的参数解析、profile 合并、Manifest 校验（领域层纯逻辑，§15.6.5）。
-- **集成测试**：`init` 产出 `openstrata.yaml` 与 profile 骨架一致；`plan` 对接 resolver 测试桩返回预期 checksum。
-- **端到端（黄金路径）**：CI 中 `aictl init --profile starter && aictl up` 在 kind/Compose 中起核心组件并断言聊天 UI 可达（§13.4 30s 目标）。
-- **契约测试**：`GatewayClient`/`PlatformClient` Adapter 对网关/控制面 API 跑契约用例（§10.4），保证多实现一致。
-- **回归**：bom.yaml 版本 bump 后 `aictl version` 与 `model list` 显示同步更新。
+- **Observability (§4.8)**: CLI operations are reported via OTel (core basic trace); `--verbose` prints request/response summary; operation audit is recorded by the server (§13.5).
+- **Security (§4.7.3 / §4.7.4)**: CLI supports platform API Token (K8s Secret/Vault, no clear text); `config set` writes local encrypted storage; multi-user scenarios are authenticated by Keycloak (§4.7.3); basic risk control (rate limiting) restricts CLI calls on the gateway side.
 
 ---
 
-## 14. 开放问题
+## 13. Testing strategy
 
-1. **CLI 与门户的能力等价性**：门户能做的（如灰度切向量库双写），CLI 是否都需暴露？还是 CLI 仅做开发者常用子集？
-2. **本地多 profile 切换**：开发者本地同时实验 starter 与 advanced，状态目录如何隔离避免互相污染？
-3. **CLI 触发的远程装配权限**：`aictl apply` 经 resolver/provisioner 改运行态，其鉴权/RBAC 由谁强制（ai-platform-api？）。
-4. **离线/空气隔离环境**：无外网时 CLI 如何拉取元仓 profiles 与 bom（本地缓存策略）？
-5. **评测子命令的归属**：`aictl eval` 是否应进 CLI 正式命令，还是仅 full 档/optional（§4.6 评测 optional）？
+- **Unit test**: parameter analysis, profile merging, and manifest verification of each command (pure logic at the domain layer, §15.5.5).
+- **Integration Test**: `init` outputs `openstrata.yaml` consistent with the profile skeleton; `plan` connects to the resolver test pile and returns the expected checksum.
+- **End-to-end (golden path)**: `aictl init --profile starter && aictl up` in CI starts the core component in kind/Compose and asserts that the chat UI is reachable (§13.4 30s target).
+- **Contract Test**: `GatewayClient`/`PlatformClient` Adapter runs contract use cases (§10.4) on the gateway/control plane API to ensure consistency among multiple implementations.
+- **Regression**: After bom.yaml version bump, `aictl version` and `model list` display are updated synchronously.
 
 ---
 
-## 变更记录
+## 14. Open questions
 
-| 版本 | 日期 | 作者 | 说明 |
+1. **Capability equivalence between CLI and portal**: Does the CLI need to expose everything that the portal can do (such as dual-writing canary cutover of vector libraries libraries)? Or does the CLI only do the subset commonly used by developers?
+2. **Local multi-profile switching**: Developers can experiment with starter and advanced locally at the same time. How can the status directories be isolated to avoid mutual contamination?
+3. **CLI-triggered remote assembly permissions**: `aictl apply` changes the running state through resolver/provisioner. Who enforces its authentication/RBAC (ai-platform-api?).
+4. **Offline/air isolation environment**: How does the CLI pull the metacang profiles and bom (local cache policy) when there is no external network?
+5. **Evaluation subcommand ownership**: Should `aictl eval` be a formal CLI command, or only a full file/optional (§4.6 Evaluation optional)?
+
+---
+
+## Change record
+
+| Version | Date | Author | Description |
 | --- | --- | --- | --- |
-| v0.1 | 2026-07-17 | OpenStrata 架构组 | 初稿（覆盖占位骨架，14 节完整） |
+| v0.1 | 2026-07-17 | OpenStrata Architecture Group | First draft (covering the placeholder skeleton, complete with 14 sections) |
 
-## 追溯矩阵（本文档章节 ↔ 架构设计文档 § 编号）
+## Traceability Matrix (Chapter of this document ↔ Architecture Design Document § Number)
 
-| 章节 | 对应架构 § |
+| Chapter | Corresponding Architecture § |
 | --- | --- |
-| 1 定位与边界 | §4.1.3, §13.4, §15.6 |
-| 2 职责清单 | §4.1.3, §4.6, §13.3, §13.4 |
-| 3 核心抽象与接口 | §13.3, §15.6.2 |
-| 4 处理流水线 | §13.4 |
-| 5 关键算法 | §12.1, §12.2, §13.3, §13.4 |
-| 6 外部适配 | §4.1.3, §10.4, §15.6.4, §16 |
-| 7 API/CLI/配置 | §4.1.3, §12.1, §12.2, §13.4 |
-| 8 数据模型 | §12.1, §16(base) |
-| 9 并发与性能 | §13.4, §15.6.1 |
-| 10 时序图 | §13.4, §15.6.2.2 |
-| 11 配置部署 | §9.1, §12.2, §16.1 |
-| 12 可观测性/安全 | §4.7.3, §4.7.4, §4.8, §13.5 |
-| 13 测试策略 | §10.4, §13.4, §15.6.5 |
-| 14 开放问题 | §4.6, §10.4, §12.1, §13.3 |
+| 1 Positioning and Boundaries | §4.1.3, §13.4, §15.5 |
+| 2 Responsibilities List | §4.1.3, §4.6, §13.3, §13.4 |
+| 3 Core abstractions and interfaces | §13.3, §15.5.2 |
+| 4 Processing Pipeline | §13.4 |
+| 5 Key Algorithms | §12.1, §12.2, §13.3, §13.4 |
+| 6 External adaptation | §4.1.3, §10.4, §15.5.4, §16 |
+| 7 API/CLI/Configuration | §4.1.3, §12.1, §12.2, §13.4 |
+| 8 Data Model | §12.1, §16(base) |
+| 9 Concurrency and Performance | §13.4, §15.5.1 |
+| 10 Timing diagram | §13.4, §15.5.2.2 |
+| 11 Configuration Deployment | §9.1, §12.2, §16.1 |
+| 12 Observability/Security | §4.7.3, §4.7.4, §4.8, §13.5 |
+| 13 Testing Strategy | §10.4, §13.4, §15.5.5 |
+| 14 Open Questions | §4.6, §10.4, §12.1, §13.3 |

@@ -1,12 +1,12 @@
-# ai-cli · 接口/数据/部署规格
+# ai-cli · Interface/data/deployment specifications
 
-> 对应设计文档 §7（API/CLI）、§8（数据模型与存储）、§11（配置与部署）
+> Corresponding design documents §7 (API/CLI), §8 (data model and storage), §11 (configuration and deployment)
 
 ---
 
-## §7 CLI 命令面
+## §7 CLI command surface
 
-### 7.1 完整命令树（Cobra）
+### 7.1 Complete command tree (Cobra)
 
 ```
 aictl
@@ -25,125 +25,125 @@ aictl
 └── logout
 ```
 
-### 7.2 命令详情
+### 7.2 Command details
 
-| 命令 | Flags | 说明 |
+| Command | Flags | Description |
 |------|-------|------|
-| `init` | `--profile`, `--model`, `--tenant`, `--dry-run` | 生成 openstrata.yaml |
-| `up` | `--profile`, `--detach`, `--timeout` | 拉起平台核心组件 |
-| `plan` | `--enable`, `--tenant`, `--output` | 预览装配计划 |
-| `apply` | `--plan`, `--wait` | 应用装配计划 |
-| `rollback` | `--component`, `--revision`, `--force` | 回滚组件 |
-| `model list` | `--enabled`, `--source`, `--output` | 列出模型供应方 |
-| `model enable` | `<model_id>` | 启用模型 |
-| `model disable` | `<model_id>` | 禁用模型 |
-| `app deploy` | `<spec.yaml>`, `--wait` | 部署 Agent 应用 |
-| `app logs` | `<app>`, `--follow`, `--tail` | 查看应用日志 |
-| `app port-forward` | `<app>`, `--port`, `--local-port` | 端口转发 |
-| `eval submit` | `<task.yaml>`, `--wait` | 提交评测任务 |
-| `eval status` | `<id>`, `--watch` | 查看评测进度 |
-| `eval results` | `<id>`, `--output` | 查看评测结果 |
-| `config get` | `<key>`, `--output` | 读取配置项 |
-| `config set` | `<key>` `--value <val>` | 设置配置项 |
-| `config edit` | — | 打开编辑器修改 openstrata.yaml |
-| `debug` | `--local`, `--verbose`, `--profile` | 本地最小运行时 |
-| `version` | `--json` | 打印版本信息 |
-| `login` | `--tenant`, `--endpoint` | Keycloak OIDC 登录 |
-| `logout` | — | 清除本地 token |
+| `init` | `--profile`, `--model`, `--tenant`, `--dry-run` | Generate openstrata.yaml |
+| `up` | `--profile`, `--detach`, `--timeout` | Pull up platform core components |
+| `plan` | `--enable`, `--tenant`, `--output` | Preview assembly plan |
+| `apply` | `--plan`, `--wait` | Apply assembly plan |
+| `rollback` | `--component`, `--revision`, `--force` | Rollback component |
+| `model list` | `--enabled`, `--source`, `--output` | List model suppliers |
+| `model enable` | `<model_id>` | Enable model |
+| `model disable` | `<model_id>` | Disable model |
+| `app deploy` | `<spec.yaml>`, `--wait` | Deploy Agent application |
+| `app logs` | `<app>`, `--follow`, `--tail` | View application logs |
+| `app port-forward` | `<app>`, `--port`, `--local-port` | Port forwarding |
+| `eval submit` | `<task.yaml>`, `--wait` | Submit evaluation task |
+| `eval status` | `<id>`, `--watch` | View evaluation progress |
+| `eval results` | `<id>`, `--output` | View evaluation results |
+| `config get` | `<key>`, `--output` | Read configuration items |
+| `config set` | `<key>` `--value <val>` | Set configuration items |
+| `config edit` | — | Open the editor to modify openstrata.yaml |
+| `debug` | `--local`, `--verbose`, `--profile` | Local minimal runtime |
+| `version` | `--json` | Print version information |
+| `login` | `--tenant`, `--endpoint` | Keycloak OIDC login |
+| `logout` | — | Clear local token |
 
-### 7.3 退出码
+### 7.3 Exit code
 
-| 码 | 含义 | 触发条件 |
+| Code | Meaning | Trigger condition |
 |----|------|----------|
-| 0 | 成功 | 正常完成 |
-| 1 | 通用错误 | 网络错误、服务端异常 |
-| 2 | 配置/参数错误 | 非法 profile、无效 key |
-| 3 | 平台未就绪 | up 后超时未 Ready |
-| 4 | 装配冲突 | resolver 返回 Conflict |
-| 5 | 鉴权失败 | Token 过期或无效 |
+| 0 | Successful | Completed normally |
+| 1 | General errors | Network errors, server exceptions |
+| 2 | Configuration/parameter error | Illegal profile, invalid key |
+| 3 | The platform is not ready | Timeout after up and not Ready |
+| 4 | Assembly conflict | resolver returns Conflict |
+| 5 | Authentication failed | Token expired or invalid |
 
-### 7.4 全局 Flags
+### 7.4 Global Flags
 
-| Flag | 说明 | 默认值 |
+| Flag | Description | Default value |
 |------|------|--------|
-| `--profile` | 指定 profile | starter（或上次 init 的值） |
-| `--endpoint` | 平台控制面地址 | `http://localhost:8080` |
-| `--output` | 输出格式：table / json / yaml | table |
-| `--verbose` | 打印详细日志 | false |
-| `--no-color` | 禁用彩色输出 | false |
-| `--config` | 指定配置文件路径 | `./openstrata.yaml` |
+| `--profile` | Specify profile | starter (or value from last init) |
+| `--endpoint` | Platform control plane address | `http://localhost:8080` |
+| `--output` | Output format: table/json/yaml | table |
+| `--verbose` | Print detailed logs | false |
+| `--no-color` | Disable color output | false |
+| `--config` | Specify the configuration file path | `./openstrata.yaml` |
 
-### 7.5 输出格式适配
+### 7.5 Output format adaptation
 
-| 格式 | 命令示例 | 说明 |
+| Format | Command Example | Description |
 |------|----------|------|
-| table | `aictl model list` | 终端友好的表格（默认） |
-| json | `aictl model list --output json` | 结构化，可管道处理 |
-| yaml | `aictl config get enabled --output yaml` | 可编辑 |
+| table | `aictl model list` | Terminal-friendly table (default) |
+| json | `aictl model list --output json` | Structured, pipelineable |
+| yaml | `aictl config get enabled --output yaml` | editable |
 
 ---
 
-## §8 数据模型
+## §8 Data Model
 
-### 8.1 本地状态目录：`~/.openstrata/`
+### 8.1 Local status directory: `~/.openstrata/`
 
 ```
 ~/.openstrata/
-├── config.yaml              # CLI 本地配置
-│   ├── defaultProfile       # 默认 profile
-│   ├── platform.endpoint    # 平台控制面地址
-│   ├── output               # 输出格式（table/json/yaml）
-│   └── metaRepo.profilesPath# profile 本地缓存路径
+├── config.yaml              #CLI local configuration
+│   ├── defaultProfile       #default profile
+│   ├── platform.endpoint    #Platform control plane address
+│   ├── output               #Output format (table/json/yaml)
+│   └── metaRepo.profilesPath# profile local cache path
 │
-├── state.json               # 运行时状态
-│   ├── currentProfile       # 当前 profile
-│   ├── lastChecksum         # 最近 Plan checksum
-│   └── lastUpTimestamp      # 最近 up 时间
+├── state.json               #runtime status
+│   ├── currentProfile       #current profile
+│   ├── lastChecksum         #Recent Plan checksum
+│   └── lastUpTimestamp      #Last up time
 │
 ├── tokens/
-│   └── jwt.enc              # AES-GCM 加密的 JWT Token
+│   └── jwt.enc              #AES-GCM encrypted JWT Token
 │
 └── cache/
     └── profiles/
-        ├── starter.yaml     # 本地缓存 profile 骨架
+        ├── starter.yaml     #Local cache profile skeleton
         ├── standard.yaml
         ├── advanced.yaml
         └── full.yaml
 ```
 
-### 8.2 远端状态（CLI 无权威数据）
+### 8.2 Remote status (CLI no authoritative data)
 
-CLI 不持有持久化业务数据，所有权威状态在对应服务端：
+CLI does not hold persistent business data, and all authoritative status is on the corresponding server:
 
-| 数据类型 | 权威持有者 | 存储 |
+| data type | authority holder | storage |
 |----------|------------|------|
-| 装配计划 | ai-dependency-resolver | PostgreSQL（assembly_plan 表） |
-| 部署状态 | ai-provisioning-engine | PostgreSQL（provisioning_record 表） |
-| Agent 应用 | ai-platform-api | PostgreSQL |
-| 模型列表 | ai-gateway-core | 网关配置 |
-| 评测任务 | ai-eval-service | PostgreSQL |
-| 平台配置 | 门户/Manifest | openstrata.yaml（GitOps） |
+| assembly plan | ai-dependency-resolver | PostgreSQL (assembly_plan table) |
+| Deployment status | ai-provisioning-engine | PostgreSQL (provisioning_record table) |
+| Agent application | ai-platform-api | PostgreSQL |
+| Model list | ai-gateway-core | Gateway configuration |
+| Evaluation tasks | ai-eval-service | PostgreSQL |
+| Platform Configuration | Portal/Manifest | openstrata.yaml (GitOps) |
 
-### 8.3 schema 校验规则（PlatformManifest）
+### 8.3 schema verification rules (PlatformManifest)
 
 ```go
-// openstrata.yaml 结构
+//openstrata.yaml structure
 type PlatformManifest struct {
     Profile   string            `yaml:"profile" validate:"oneof=starter standard advanced full"`
     Version   string            `yaml:"version" validate:"semver"`
     Tenant    string            `yaml:"tenant" validate:"required,alphanum"`
     Model     string            `yaml:"model" validate:"required"`
     Enabled   map[string]bool   `yaml:"enabled" validate:"keys,valid-capability"`
-    // ... 扩展字段
+    //... extension fields
 }
 ```
 
-### 8.4 CLI 本地配置 Schema
+### 8.4 CLI local configuration Schema
 
 ```yaml
 # ~/.openstrata/config.yaml
 cli:
-  defaultProfile: starter     # 默认 profile
+  defaultProfile: starter     #default profile
   metaRepo:
     profilesPath: ~/.openstrata/cache/profiles
   platform:
@@ -153,20 +153,20 @@ cli:
 
 ---
 
-## §11 部署/分发
+## §11 Deployment/Distribution
 
-### 11.1 分发形态
+### 11.1 Distribution form
 
-单二进制，非 K8s 工作负载，无探针、无副本。
+Single binary, non-K8s workload, no probes, no replicas.
 
-| 方式 | 命令 | 说明 |
+| Mode | Command | Description |
 |------|------|------|
-| 本地开发 | `go run ./cmd/aictl` | 源码运行 |
-| Go install | `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0` | 包管理安装 |
-| 预编译 | CI 产出多平台二进制 | Linux/macOS/Windows (amd64/arm64) |
-| 包管理器 | `brew install openstrata/aictl` / `apt install aictl` | 未来扩展 |
+| Local development | `go run ./cmd/aictl` | Source code running |
+| Go install | `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0` | Package management installation |
+| Pre-compiled | CI produces multi-platform binaries | Linux/macOS/Windows (amd64/arm64) |
+| Package Manager | `brew install openstrata/aictl` / `apt install aictl` | Future extensions |
 
-### 11.2 构建配置
+### 11.2 Build configuration
 
 ```makefile
 # Makefile
@@ -184,9 +184,9 @@ cross-build:
     GOOS=windows GOARCH=amd64 go build -o bin/aictl-windows-amd64.exe ./cmd/aictl
 ```
 
-### 11.3 版本对齐
+### 11.3 version alignment
 
-`aictl version` 输出示例：
+`aictl version` output example:
 
 ```
 $ aictl version
@@ -217,10 +217,10 @@ $ aictl version --json
 }
 ```
 
-### 11.4 本地配置文件
+### 11.4 Local configuration file
 
 ```yaml
-# 本仓 infrastructure/config/config.yaml 局部
+# Main repository infrastructure/config/config.yaml local
 cli:
   defaultProfile: starter
   metaRepo:
@@ -229,53 +229,53 @@ cli:
     endpoint: http://localhost:8080
   output: table             # table|json|yaml
   timeout:
-    up: 300                 # up 等待超时（秒）
-    ready: 30               # 组件 Ready 超时（秒）
-    request: 10             # API 请求超时（秒）
+    up: 300                 #up wait timeout (seconds)
+    ready: 30               #Component Ready timeout (seconds)
+    request: 10             #API request timeout (seconds)
   debug:
-    portRange: 8080-8090    # 本地端口转发范围
+    portRange: 8080-8090    #Local port forwarding range
 ```
 
-### 11.5 配置键清单
+### 11.5 Configuration key list
 
-| 配置键 | 默认值 | 说明 |
+| Configuration Key | Default Value | Description |
 |--------|--------|------|
-| `cli.defaultProfile` | `starter` | 默认 profile |
-| `cli.metaRepo.profilesPath` | `openstrata-meta/profiles` | Profile 源目录 |
-| `cli.platform.endpoint` | `http://localhost:8080` | 平台控制面 |
-| `cli.output` | `table` | 输出格式 |
-| `cli.timeout.up` | `300` | up 超时秒数 |
-| `cli.timeout.ready` | `30` | 组件就绪超时秒数 |
-| `cli.timeout.request` | `10` | API 请求超时 |
-| `cli.debug.portRange` | `8080-8090` | 本地端口转发范围 |
+| `cli.defaultProfile` | `starter` | Default profile |
+| `cli.metaRepo.profilesPath` | `openstrata-meta/profiles` | Profile source directory |
+| `cli.platform.endpoint` | `http://localhost:8080` | Platform control plane |
+| `cli.output` | `table` | Output format |
+| `cli.timeout.up` | `300` | up timeout seconds |
+| `cli.timeout.ready` | `30` | Component ready timeout seconds |
+| `cli.timeout.request` | `10` | API request timeout |
+| `cli.debug.portRange` | `8080-8090` | Local port forwarding range |
 
-### 11.6 与平台联动
+### 11.6 Linkage with the platform
 
-| 场景 | CLI 命令 | 平台组件 | 协议 |
+| Scenarios | CLI Commands | Platform Components | Protocols |
 |------|----------|----------|------|
-| 引导初始化 | `init` | 元仓 profiles | 文件读取 |
-| 一键拉起（starter）| `up --profile starter` | resolver + provisioner（Compose） | HTTP |
-| 一键拉起（standard+）| `up --profile advanced` | resolver + provisioner（Helm/K8s） | HTTP |
-| 装配预览 | `plan` | resolver | HTTP |
-| 部署应用 | `apply` | provisioner | HTTP |
-| 模型管理 | `model list` | gateway | HTTP |
-| 应用管理 | `app deploy` | platform-api | HTTP |
-| 评测 | `eval submit` | eval-service | HTTP |
-| 配置管理 | `config set` | — | 本地文件 |
+| Boot initialization | `init` | meta repository profiles | File reading |
+| One-click startup (starter) | `up --profile starter` | resolver + provisioner (Compose) | HTTP |
+| One-click pull up (standard+) | `up --profile advanced` | resolver + provisioner (Helm/K8s) | HTTP |
+| assembly preview | `plan` | resolver | HTTP |
+| Deploy application | `apply` | provisioner | HTTP |
+| Model management | `model list` | gateway | HTTP |
+| Application management | `app deploy` | platform-api | HTTP |
+| Reviews | `eval submit` | eval-service | HTTP |
+| Configuration management | `config set` | — | Local files |
 
-### 11.7 环境变量
+### 11.7 Environment variables
 
-| 变量 | 说明 | 示例 |
+| Variable | Description | Example |
 |------|------|------|
-| `OPENSTRATA_ENDPOINT` | 平台控制面地址 | `http://localhost:8080` |
-| `OPENSTRATA_PROFILE` | 默认 profile | `starter` |
-| `OPENSTRATA_TOKEN` | API Token（优先级最高） | `eyJ...` |
-| `OPENSTRATA_CONFIG` | 配置文件路径 | `./openstrata.yaml` |
-| `OPENSTRATA_OUTPUT` | 输出格式 | `json` |
-| `OPENSTRATA_NO_COLOR` | 禁用彩色输出 | `true` |
+| `OPENSTRATA_ENDPOINT` | Platform control plane address | `http://localhost:8080` |
+| `OPENSTRATA_PROFILE` | Default profile | `starter` |
+| `OPENSTRATA_TOKEN` | API Token (highest priority) | `eyJ...` |
+| `OPENSTRATA_CONFIG` | Configuration file path | `./openstrata.yaml` |
+| `OPENSTRATA_OUTPUT` | Output format | `json` |
+| `OPENSTRATA_NO_COLOR` | Disable color output | `true` |
 
 ---
 
-> 核心接口与包结构参见 [arch/ARCH.md](../arch/ARCH.md)
-> 算法/并发/安全规则参见 [skills/SKILLS.md](../skills/SKILLS.md)
-> 完整流程参见 [design/DESIGN.md §4](../design/DESIGN.md#4-处理流水线--请求路径)
+> For the core interface and package structure, see [arch/ARCH.md](../arch/ARCH.md)
+> For algorithm/concurrency/safety rules, see [skills/SKILLS.md](../skills/SKILLS.md)
+> For the complete process, see [design/DESIGN.md §4](../design/DESIGN.md#4-Processing Pipeline--Request Path)
