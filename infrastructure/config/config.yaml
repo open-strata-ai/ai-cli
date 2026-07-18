@@ -1,0 +1,13 @@
+cli:
+  defaultProfile: starter
+  metaRepo:
+    profilesPath: openstrata-meta/profiles
+  platform:
+    endpoint: http://localhost:8080
+  output: table
+  timeout:
+    up: 300
+    ready: 30
+    request: 10
+  debug:
+    portRange: 8080-8090
