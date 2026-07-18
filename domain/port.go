@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // PlatformClient is the core port for interacting with the OpenStrata platform.
 // The anti-corrosion layer implements it in infrastructure/adapter; use cases
@@ -10,9 +13,15 @@ type PlatformClient interface {
 	Init(ctx context.Context, profile, model string) error
 	Up(ctx context.Context, profile string) error
 
-	// Assembly orchestration (pass-through to resolver / provisioner)
-	Plan(ctx context.Context, enable []string, tenant string) (string, error) // returns checksum
-	Apply(ctx context.Context, checksum string) error
+	// Assembly orchestration (pass-through to resolver / provisioner).
+	// Plan returns the resolver checksum AND the resolved plan JSON so the
+	// CLI can forward the real plan object to the provisioner (which expects
+	// an AssemblyPlan, not a checksum string).
+	Plan(ctx context.Context, enable []string, tenant string) (checksum string, plan json.RawMessage, err error)
+	// GetPlan fetches a previously resolved plan by checksum from the resolver.
+	GetPlan(ctx context.Context, checksum string) (json.RawMessage, error)
+	// Apply submits a resolved plan object (AssemblyPlan) to the provisioner.
+	Apply(ctx context.Context, plan json.RawMessage, profile, tenantID string) error
 	Rollback(ctx context.Context, component string) error
 
 	// Model management (via gateway)

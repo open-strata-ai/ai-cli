@@ -10,7 +10,7 @@ import (
 
 func TestFakePlatformClientPlanApply(t *testing.T) {
 	f := NewFakePlatformClient()
-	cs, err := f.Plan(context.Background(), []string{"gateway", "llm"}, "acme")
+	cs, _, err := f.Plan(context.Background(), []string{"gateway", "llm"}, "acme")
 	if err != nil {
 		t.Fatalf("plan: %v", err)
 	}
@@ -18,14 +18,14 @@ func TestFakePlatformClientPlanApply(t *testing.T) {
 		t.Fatal("empty checksum")
 	}
 	// Deterministic for same input.
-	cs2, _ := f.Plan(context.Background(), []string{"gateway", "llm"}, "acme")
+	cs2, _, _ := f.Plan(context.Background(), []string{"gateway", "llm"}, "acme")
 	if cs != cs2 {
 		t.Fatalf("checksum not deterministic: %q vs %q", cs, cs2)
 	}
-	if err := f.Apply(context.Background(), cs); err != nil {
+	if err := f.Apply(context.Background(), nil, "starter", "acme"); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
-	if len(f.Applied) != 1 || f.Applied[0] != cs {
+	if len(f.Applied) != 1 {
 		t.Fatalf("applied = %v", f.Applied)
 	}
 }

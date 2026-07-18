@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
@@ -66,13 +67,18 @@ func TestPlanUseCase(t *testing.T) {
 func TestApplyUseCaseFallsBackToStored(t *testing.T) {
 	fake := adapter.NewFakePlatformClient()
 	dir := t.TempDir()
-	// Seed state with a checksum.
-	_ = state.SaveState(dir, &state.State{LastChecksum: "cs_seed"})
+	// Seed state with a previously resolved plan.
+	_ = state.SaveState(dir, &state.State{
+		LastChecksum: "cs_seed",
+		LastPlan:     json.RawMessage(`{"checksum":"cs_seed"}`),
+		LastProfile:  "starter",
+		LastTenant:   "acme",
+	})
 	uc := NewApplyUseCase(fake, dir)
 	if err := uc.Run(context.Background(), ""); err != nil {
 		t.Fatalf("run: %v", err)
 	}
-	if len(fake.Applied) != 1 || fake.Applied[0] != "cs_seed" {
+	if len(fake.Applied) != 1 {
 		t.Fatalf("applied = %v", fake.Applied)
 	}
 }

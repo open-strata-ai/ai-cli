@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/open-strata-ai/ai-cli/domain"
 	"github.com/open-strata-ai/ai-cli/infrastructure/state"
@@ -42,7 +43,7 @@ func (u *PlanUseCase) Run(ctx context.Context, enable []string, tenant string) (
 	for k := range enabled {
 		list = append(list, k)
 	}
-	cs, err := u.client.Plan(ctx, list, tenant)
+	cs, planRaw, err := u.client.Plan(ctx, list, tenant)
 	if err != nil {
 		return "", err
 	}
@@ -51,6 +52,9 @@ func (u *PlanUseCase) Run(ctx context.Context, enable []string, tenant string) (
 		return "", domain.ErrGeneral("load state", err)
 	}
 	st.LastChecksum = cs
+	st.LastPlan = planRaw
+	st.LastTenant = tenant
+	st.LastProfile = "starter"
 	if err := state.SaveState(u.stateDir, st); err != nil {
 		return "", domain.ErrGeneral("save state", err)
 	}
@@ -68,17 +72,36 @@ func NewApplyUseCase(client domain.PlatformClient, stateDir string) *ApplyUseCas
 	return &ApplyUseCase{client: client, stateDir: stateDir}
 }
 
-// Run applies the given checksum, falling back to the last stored checksum.
+// Run applies a plan. If checksum is given it is fetched from the resolver;
+// otherwise the last plan stored by `aictl plan` is used.
 func (u *ApplyUseCase) Run(ctx context.Context, checksum string) error {
-	if checksum == "" {
-		st, err := state.LoadState(u.stateDir)
+	st, err := state.LoadState(u.stateDir)
+	if err != nil {
+		return domain.ErrGeneral("load state", err)
+	}
+	var planRaw json.RawMessage
+	if checksum != "" {
+		planRaw, err = u.client.GetPlan(ctx, checksum)
 		if err != nil {
-			return domain.ErrGeneral("load state", err)
+			return err
 		}
-		checksum = st.LastChecksum
+	} else if len(st.LastPlan) > 0 {
+		planRaw = st.LastPlan
+	} else if st.LastChecksum != "" {
+		planRaw, err = u.client.GetPlan(ctx, st.LastChecksum)
+		if err != nil {
+			return err
+		}
+	} else {
+		return domain.ErrConfig("no plan to apply (run `aictl plan` first)", nil)
 	}
-	if checksum == "" {
-		return domain.ErrConfig("no plan checksum provided (use --plan or run `aictl plan`)", nil)
+	profile := st.LastProfile
+	if profile == "" {
+		profile = "starter"
 	}
-	return u.client.Apply(ctx, checksum)
+	tenantID := st.LastTenant
+	if tenantID == "" {
+		tenantID = "local"
+	}
+	return u.client.Apply(ctx, planRaw, profile, tenantID)
 }

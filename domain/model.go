@@ -32,11 +32,12 @@ type Manifest struct {
 
 // ModelView describes a model supplier as seen by the gateway.
 type ModelView struct {
-	ModelID string `json:"model_id" yaml:"model_id"`
-	Source  string `json:"source" yaml:"source"`
-	Enabled bool   `json:"enabled" yaml:"enabled"`
-	Health  string `json:"health" yaml:"health"`
-	Latency string `json:"latency_ms" yaml:"latency_ms"`
+	ModelID    string `json:"model_id" yaml:"model_id"`
+	Source     string `json:"source" yaml:"source"`
+	Capability string `json:"capability,omitempty" yaml:"capability,omitempty"`
+	Enabled    bool   `json:"enabled" yaml:"enabled"`
+	Health     string `json:"health" yaml:"health"`
+	Latency    string `json:"latency_ms" yaml:"latency_ms"`
 }
 
 // EvalTaskResult is a summary of an evaluation task.

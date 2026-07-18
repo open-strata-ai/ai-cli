@@ -27,9 +27,12 @@ func DefaultDir() string {
 
 // State is the runtime status persisted under ~/.openstrata/state.json.
 type State struct {
-	CurrentProfile  string `json:"current_profile"`
-	LastChecksum    string `json:"last_checksum"`
-	LastUpTimestamp string `json:"last_up_timestamp"`
+	CurrentProfile  string          `json:"current_profile"`
+	LastChecksum    string          `json:"last_checksum"`
+	LastPlan        json.RawMessage `json:"last_plan"`
+	LastTenant      string          `json:"last_tenant"`
+	LastProfile     string          `json:"last_profile"`
+	LastUpTimestamp string          `json:"last_up_timestamp"`
 }
 
 // LoadState reads state from dir; returns an empty state if absent.

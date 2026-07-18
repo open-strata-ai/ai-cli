@@ -61,11 +61,33 @@ func (g *GatewayClient) do(ctx context.Context, method, path string, body, out a
 	return nil
 }
 
-// ListModels returns the configured model suppliers.
+// ListModels returns the configured model suppliers. The gateway returns an
+// OpenAI-style envelope {"object":"list","data":[...]}; we unwrap it into
+// domain.ModelView values.
 func (g *GatewayClient) ListModels(ctx context.Context) ([]domain.ModelView, error) {
-	var out []domain.ModelView
-	err := g.do(ctx, "GET", "/v1/models", nil, &out)
-	return out, err
+	var env struct {
+		Object string `json:"object"`
+		Data   []struct {
+			ID         string `json:"id"`
+			Object     string `json:"object"`
+			Capability string `json:"capability"`
+			Source     string `json:"source"`
+		} `json:"data"`
+	}
+	if err := g.do(ctx, "GET", "/v1/models", nil, &env); err != nil {
+		return nil, err
+	}
+	views := make([]domain.ModelView, 0, len(env.Data))
+	for _, d := range env.Data {
+		views = append(views, domain.ModelView{
+			ModelID:    d.ID,
+			Source:     d.Source,
+			Capability: d.Capability,
+			Enabled:    true,
+			Health:     "healthy",
+		})
+	}
+	return views, nil
 }
 
 // EnableModel enables a model supplier.

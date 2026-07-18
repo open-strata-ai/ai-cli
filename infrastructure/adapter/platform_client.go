@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -82,16 +83,37 @@ func (c *PlatformClientImpl) Up(ctx context.Context, profile string) error {
 	return c.do(ctx, "POST", "/v1/up", map[string]string{"profile": profile}, nil)
 }
 
-func (c *PlatformClientImpl) Plan(ctx context.Context, enable []string, tenant string) (string, error) {
-	var out struct {
-		Checksum string `json:"checksum"`
+func (c *PlatformClientImpl) Plan(ctx context.Context, enable []string, tenant string) (string, json.RawMessage, error) {
+	enabled := make(map[string]bool, len(enable))
+	for _, e := range enable {
+		enabled[e] = true
 	}
-	err := c.do(ctx, "POST", "/v1/resolve", map[string]any{"enabled": enable, "tenant": tenant}, &out)
-	return out.Checksum, err
+	var out struct {
+		Checksum string          `json:"checksum"`
+		Plan     json.RawMessage `json:"plan"`
+	}
+	err := c.do(ctx, "POST", "/v1/resolve", map[string]any{
+		"tenant_id": tenant,
+		"enabled":   enabled,
+		"profile":   "starter",
+	}, &out)
+	return out.Checksum, out.Plan, err
 }
 
-func (c *PlatformClientImpl) Apply(ctx context.Context, checksum string) error {
-	return c.do(ctx, "POST", "/v1/apply", map[string]string{"plan": checksum}, nil)
+// GetPlan fetches a previously resolved plan by checksum from the resolver.
+func (c *PlatformClientImpl) GetPlan(ctx context.Context, checksum string) (json.RawMessage, error) {
+	var out json.RawMessage
+	err := c.do(ctx, "GET", "/v1/plan/"+checksum, nil, &out)
+	return out, err
+}
+
+// Apply submits a resolved plan object (AssemblyPlan) to the provisioner.
+func (c *PlatformClientImpl) Apply(ctx context.Context, plan json.RawMessage, profile, tenantID string) error {
+	return c.do(ctx, "POST", "/v1/apply", map[string]any{
+		"plan":      plan,
+		"profile":   profile,
+		"tenant_id": tenantID,
+	}, nil)
 }
 
 func (c *PlatformClientImpl) Rollback(ctx context.Context, component string) error {
@@ -130,24 +152,69 @@ func (c *PlatformClientImpl) AppLogs(ctx context.Context, appName string) (io.Re
 	return resp.Body, nil
 }
 
+// evalTaskFile is the JSON task descriptor consumed by `aictl eval submit`.
+// It maps onto the eval-service RunCreate contract (POST /v1/runs).
+type evalTaskFile struct {
+	DatasetID      string   `json:"dataset_id"`
+	DatasetVersion string   `json:"dataset_version"`
+	AgentID        string   `json:"agent_id"`
+	TenantID       string   `json:"tenant_id"`
+	ScorerSet      []string `json:"scorer_set"`
+	Split          string   `json:"split,omitempty"`
+}
+
 func (c *PlatformClientImpl) RunEval(ctx context.Context, taskPath string) (string, error) {
-	var out struct {
-		TaskID string `json:"task_id"`
+	data, err := os.ReadFile(taskPath)
+	if err != nil {
+		return "", domain.ErrGeneral("read task file", err)
 	}
-	err := c.do(ctx, "POST", "/v1/eval", map[string]string{"spec": taskPath}, &out)
-	return out.TaskID, err
+	var tf evalTaskFile
+	if err := json.Unmarshal(data, &tf); err != nil {
+		return "", domain.ErrGeneral("parse task file (expected JSON)", err)
+	}
+	body := map[string]any{
+		"dataset_id":      tf.DatasetID,
+		"dataset_version": tf.DatasetVersion,
+		"agent":           map[string]string{"agent_id": tf.AgentID, "tenant_id": tf.TenantID},
+		"scorer_set":      tf.ScorerSet,
+	}
+	if tf.Split != "" {
+		body["split"] = tf.Split
+	}
+	var out struct {
+		RunID string `json:"run_id"`
+	}
+	if err := c.do(ctx, "POST", "/v1/runs", body, &out); err != nil {
+		return "", err
+	}
+	return out.RunID, nil
 }
 
 func (c *PlatformClientImpl) EvalStatus(ctx context.Context, taskID string) (domain.EvalTaskResult, error) {
-	var out domain.EvalTaskResult
-	err := c.do(ctx, "GET", "/v1/eval/"+taskID, nil, &out)
-	return out, err
+	var out struct {
+		RunID  string `json:"run_id"`
+		Status string `json:"status"`
+	}
+	if err := c.do(ctx, "GET", "/v1/runs/"+taskID, nil, &out); err != nil {
+		return domain.EvalTaskResult{}, err
+	}
+	return domain.EvalTaskResult{TaskID: out.RunID, Status: out.Status}, nil
 }
 
 func (c *PlatformClientImpl) EvalResults(ctx context.Context, taskID string) (domain.EvalTaskResult, error) {
-	var out domain.EvalTaskResult
-	err := c.do(ctx, "GET", "/v1/eval/"+taskID+"/results", nil, &out)
-	return out, err
+	var out struct {
+		RunID   string             `json:"run_id"`
+		Metrics map[string]float64 `json:"metrics_summary"`
+	}
+	if err := c.do(ctx, "GET", "/v1/runs/"+taskID+"/report", nil, &out); err != nil {
+		return domain.EvalTaskResult{}, err
+	}
+	score := 0.0
+	for _, v := range out.Metrics {
+		score = v
+		break
+	}
+	return domain.EvalTaskResult{TaskID: out.RunID, Status: "done", Score: score}, nil
 }
 
 // GetConfig / SetConfig are handled locally via the manifest in the config
@@ -172,7 +239,7 @@ func (c *PlatformClientImpl) PortForward(ctx context.Context, appName string, po
 // FakePlatformClient records calls and returns deterministic values.
 type FakePlatformClient struct {
 	Plans      []string
-	Applied    []string
+	Applied    []json.RawMessage
 	RolledBack []string
 	UpProfiles []string
 	Inited     []string
@@ -202,17 +269,20 @@ func (f *FakePlatformClient) Up(ctx context.Context, profile string) error {
 	f.UpProfiles = append(f.UpProfiles, profile)
 	return nil
 }
-func (f *FakePlatformClient) Plan(ctx context.Context, enable []string, tenant string) (string, error) {
+func (f *FakePlatformClient) Plan(ctx context.Context, enable []string, tenant string) (string, json.RawMessage, error) {
 	sum := tenant
 	for _, e := range enable {
 		sum += "," + e
 	}
 	cs := fmt.Sprintf("cs_%x", hashString(sum))
 	f.Plans = append(f.Plans, cs)
-	return cs, nil
+	return cs, json.RawMessage(nil), nil
 }
-func (f *FakePlatformClient) Apply(ctx context.Context, checksum string) error {
-	f.Applied = append(f.Applied, checksum)
+func (f *FakePlatformClient) GetPlan(ctx context.Context, checksum string) (json.RawMessage, error) {
+	return json.RawMessage(nil), nil
+}
+func (f *FakePlatformClient) Apply(ctx context.Context, plan json.RawMessage, profile, tenantID string) error {
+	f.Applied = append(f.Applied, plan)
 	return nil
 }
 func (f *FakePlatformClient) Rollback(ctx context.Context, component string) error {
