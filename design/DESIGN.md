@@ -4,7 +4,7 @@
 > **Language · Framework**: Go · Cobra + Wire (DDD four layers; CLI single binary)
 > **Field**: developer-tooling (developer tool chain)
 > **optional**: false (core · core, developer entrance)
-> **Platform version**: v1.4.0
+> **Platform version**: v1.0.0
 > **Document Status**: Draft
 > **Responsible Person**: OpenStrata Architecture Group
 > **Associated links**: This repository [arch/ARCH.md](../../arch/ARCH.md) · [skills/SKILLS.md](../../skills/SKILLS.md) · [specs/SPECS.md](../../specs/SPECS.md); Architecture design document §4.1.3 (SDK and CLI · aictl) · §13.4 (One-click early adopter) · §12.2 (Four-level prefabrication) · §13.3 (Assembly arrangement) · §15.5 (DDD layering/Cobra) · §16 (BOM)
@@ -118,12 +118,12 @@ When reading and writing `openstrata.yaml`, perform schema verification (alignme
 | SPI port | Role of this repository | External components | Default ✅ / Alternative | Adapter |
 | --- | --- | --- | --- | --- |
 | `PlatformClient` | Caller | `ai-dependency-resolver` / `ai-provisioning-engine` / `ai-platform-api` / `ai-gateway-core` | ✅ | HTTP/gRPC Client Adapter |
-| `Gateway` (1.2.0) | Caller | Higress (core, data plane) | ✅ | `GatewayClient` (OpenAI-compatible) |
+| `Gateway` (1.0.0) | Caller | Higress (core, data plane) | ✅ | `GatewayClient` (OpenAI-compatible) |
 | `LLMProvider` (1.0.0) | Indirect | Each model supplier | ✅ | Forwarded via gateway |
 | `Cache` (1.0.0) | Consumer | Redis (core) | ✅ | Local state/cache |
 | `Tracing` (1.0.0) | Consumer | OTel (core) | ✅ | CLI operation trace |
 
-> The CLI itself has no runtime OSS dependency**; all capabilities are accessed through the anti-corrosion layer client Adapter (§15.5.4). Aligned with bom.yaml `interface_versions`: `Gateway: 1.2.0`, `LLMProvider: 1.0.0`. `aictl` is §4.1.3's explicit developer access method, alongside SDK/low-code.
+> The CLI itself has no runtime OSS dependency**; all capabilities are accessed through the anti-corrosion layer client Adapter (§15.5.4). Aligned with bom.yaml `interface_versions`: `Gateway: 1.0.0`, `LLMProvider: 1.0.0`. `aictl` is §4.1.3's explicit developer access method, alongside SDK/low-code.
 
 ---
 
@@ -204,9 +204,9 @@ sequenceDiagram
 ## 11. Configuration and deployment (including K8s resources/probes)
 
 - **Distribution form**: single binary, multi-platform executable output through `ai-cli` repository CI (`make build` / package management release); non-K8s workload, no probe.
-- **Local development**: `go run ./cmd/aictl`; publish `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0` (§16.1 tag).
+- **Local development**: `go run ./cmd/aictl`; publish `go install github.com/openstrata/ai-cli/cmd/aictl@v1.0.0` (§16.1 tag).
 - **Linkage with the platform**: `up` uses Compose through the starter (§9.1 deployment form); standard+/advanced/full uses K8s/ArgoCD through the provisioner (§12.2).
-- **Version Alignment**: `aictl version` output is consistent with `openstrata v1.4.0` + individual SPI `interface_versions` (§16.1).
+- **Version Alignment**: `aictl version` output is consistent with `openstrata v1.0.0` + individual SPI `interface_versions` (§16.1).
 
 ---
 

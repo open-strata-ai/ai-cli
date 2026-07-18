@@ -1,7 +1,7 @@
 # ai-cli · Architecture documentation
 
 > Corresponding design documents §1 (positioning and boundaries), §2 (responsibility list), §3 (core abstraction and interface), §6 (external adapter)
-> Platform version v1.4.0 | Domain: developer-tooling | Required: core
+> Platform version v1.0.0 | Domain: developer-tooling | Required: core
 
 ---
 
@@ -255,7 +255,7 @@ func init() {
 | SPI Ports | Roles | External Components | Default/Alternate | Adapter |
 |----------|------|----------|-----------|---------|
 | PlatformClient | Caller | ai-dependency-resolver / ai-provisioning-engine / ai-platform-api / ai-gateway-core | ✅ Unique | HTTP/gRPC Client Adapter |
-| Gateway (1.2.0) | Caller | Higress (core, data plane) | ✅ Unique | GatewayClient (OpenAI-compatible) |
+| Gateway (1.0.0) | Caller | Higress (core, data plane) | ✅ Unique | GatewayClient (OpenAI-compatible) |
 | LLMProvider (1.0.0) | Indirect | Each model supplier | ✅ Unique | Forwarded via gateway |
 | Cache (1.0.0) | Consumer | Redis (core) | ✅ Unique | Local state/cache |
 | Tracing (1.0.0) | Consumer | OTel (core) | ✅ Unique | CLI operation trace |
@@ -291,7 +291,7 @@ CLI and platform version alignment rules:
 
 | CLI version | Platform version | SPI version |
 |----------|----------|----------|
-| v1.4.0 | v1.4.0 | Gateway:1.2.0, LLMProvider:1.0.0 |
+| v1.0.0 | v1.0.0 | Gateway:1.0.0, LLMProvider:1.0.0 |
 | `aictl version` outputs three items: CLI version + platform version + each SPI version |
 
 ### 6.4 Local status management

@@ -162,7 +162,7 @@ Single binary, non-K8s workload, no probes, no replicas.
 | Mode | Command | Description |
 |------|------|------|
 | Local development | `go run ./cmd/aictl` | Source code running |
-| Go install | `go install github.com/openstrata/ai-cli/cmd/aictl@v1.4.0` | Package management installation |
+| Go install | `go install github.com/openstrata/ai-cli/cmd/aictl@v1.0.0` | Package management installation |
 | Pre-compiled | CI produces multi-platform binaries | Linux/macOS/Windows (amd64/arm64) |
 | Package Manager | `brew install openstrata/aictl` / `apt install aictl` | Future extensions |
 
@@ -171,7 +171,7 @@ Single binary, non-K8s workload, no probes, no replicas.
 ```makefile
 # Makefile
 VERSION := $(shell git describe --tags --always)
-LDFLAGS := -X main.Version=$(VERSION) -X main.PlatformVersion=v1.4.0
+LDFLAGS := -X main.Version=$(VERSION) -X main.PlatformVersion=v1.0.0
 
 build:
     CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aictl ./cmd/aictl
@@ -190,10 +190,10 @@ cross-build:
 
 ```
 $ aictl version
-aictl version:  v1.4.0
-platform:       v1.4.0
+aictl version:  v1.0.0
+platform:       v1.0.0
 spi versions:
-  Gateway:      1.2.0
+  Gateway:      1.0.0
   LLMProvider:  1.0.0
   Cache:        1.0.0
   Tracing:      1.0.0
@@ -204,10 +204,10 @@ go version:     go1.22.0
 ```json
 $ aictl version --json
 {
-  "cli_version": "v1.4.0",
-  "platform_version": "v1.4.0",
+  "cli_version": "v1.0.0",
+  "platform_version": "v1.0.0",
   "spi_versions": {
-    "Gateway": "1.2.0",
+    "Gateway": "1.0.0",
     "LLMProvider": "1.0.0",
     "Cache": "1.0.0",
     "Tracing": "1.0.0"
