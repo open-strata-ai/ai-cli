@@ -316,6 +316,6 @@ CLI and platform version alignment rules:
 
 ---
 
-> For the complete command tree and exit codes, see [specs/SPECS.md](../specs/SPECS.md)
-> For algorithm/concurrency/safety rules, see [skills/SKILLS.md](../skills/SKILLS.md)
-> For the complete process of guided initialization and one-click startup, please refer to [design/DESIGN.md §4](../design/DESIGN.md#4-Processing Pipeline--Request Path)
+> For the complete command tree and exit codes, see [docs/SPECS.md](./SPECS.md)
+> For algorithm/concurrency/safety rules, see [docs/SKILLS.md](./SKILLS.md)
+> For the complete process of guided initialization and one-click startup, please refer to [docs/DESIGN.md §4](./DESIGN.md#4-Processing Pipeline--Request Path)

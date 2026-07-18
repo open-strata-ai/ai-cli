@@ -1,15 +1,15 @@
-# ADR-0002: Local multi-profile switching
+# ADR-0004: Offline/Air Isolated Environment
 
 - **Status**: Pending (Open)
 - **Date**: 2026-07-17
 - **Suggested by**: OpenStrata Architecture Group
 - **Repository**: ai-cli
-- **Source**: `design/DESIGN.md` §14 Open Issue
+- **Source**: `docs/DESIGN.md` §14 Open Issue
 - **Association**: (within this repository)
 
 ##Context
 
-Developers are experimenting with starter and advanced locally at the same time. How can the status directories be isolated to avoid mutual contamination?
+How does the CLI pull metacang profiles and bom (local cache policy) when there is no external network?
 
 ## Decision Options (Options Considered)
 
@@ -19,7 +19,7 @@ Developers are experimenting with starter and advanced locally at the same time.
 
 ## Recommended decision (Decision)
 
-This ADR solidifies "local multi-profile switching" into an architectural decision record and incorporates it into `design/adr/` for continuous tracking. This issue stems from the `design/DESIGN.md` §14 open issue and is still open.
+This ADR solidifies the "offline/air isolation environment" into an architectural decision record and incorporates it into `docs/adr/` for continuous tracking. This issue stems from the `docs/DESIGN.md` §14 open issue and is still open.
 
 **Conservative Default Principle**: Before the final decision is made, the "minimum available + explicit configuration switch" shall prevail, maintain the current behavior, and not destroy the existing contract and cross-repository SPI interface; this ADR status will be written back after review by the relevant team.
 
@@ -31,5 +31,5 @@ This ADR solidifies "local multi-profile switching" into an architectural decisi
 
 ## Traceback
 
-- Upstream design: `design/DESIGN.md` §14 Open issue
-- Relevance index: see `design/adr/README.md`
+- Upstream design: `docs/DESIGN.md` §14 Open issue
+- Relevance index: see `docs/adr/README.md`

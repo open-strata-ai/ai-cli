@@ -210,6 +210,6 @@ aictl apply ──→ Header: Authorization: Bearer <jwt>
 
 ---
 
-> For the command tree and exit codes, see [specs/SPECS.md](../specs/SPECS.md)
-> For package structure and port definitions, see [arch/ARCH.md](../arch/ARCH.md)
-> For the complete process, see [design/DESIGN.md §4](../design/DESIGN.md#4-Processing Pipeline--Request Path)
+> For the command tree and exit codes, see [docs/SPECS.md](./SPECS.md)
+> For package structure and port definitions, see [docs/ARCH.md](./ARCH.md)
+> For the complete process, see [docs/DESIGN.md §4](./DESIGN.md#4-Processing Pipeline--Request Path)

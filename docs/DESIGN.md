@@ -7,7 +7,7 @@
 > **Platform version**: v1.0.0
 > **Document Status**: Draft
 > **Responsible Person**: OpenStrata Architecture Group
-> **Associated links**: This repository [arch/ARCH.md](../../arch/ARCH.md) · [skills/SKILLS.md](../../skills/SKILLS.md) · [specs/SPECS.md](../../specs/SPECS.md); Architecture design document §4.1.3 (SDK and CLI · aictl) · §13.4 (One-click early adopter) · §12.2 (Four-level prefabrication) · §13.3 (Assembly arrangement) · §15.5 (DDD layering/Cobra) · §16 (BOM)
+> **Associated links**: This repository [docs/ARCH.md](../../docs/ARCH.md) · [docs/SKILLS.md](../../docs/SKILLS.md) · [docs/SPECS.md](../../docs/SPECS.md); Architecture design document §4.1.3 (SDK and CLI · aictl) · §13.4 (One-click early adopter) · §12.2 (Four-level prefabrication) · §13.3 (Assembly arrangement) · §15.5 (DDD layering/Cobra) · §16 (BOM)
 
 ---
 

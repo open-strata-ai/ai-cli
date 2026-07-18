@@ -276,6 +276,6 @@ cli:
 
 ---
 
-> For the core interface and package structure, see [arch/ARCH.md](../arch/ARCH.md)
-> For algorithm/concurrency/safety rules, see [skills/SKILLS.md](../skills/SKILLS.md)
-> For the complete process, see [design/DESIGN.md §4](../design/DESIGN.md#4-Processing Pipeline--Request Path)
+> For the core interface and package structure, see [docs/ARCH.md](./ARCH.md)
+> For algorithm/concurrency/safety rules, see [docs/SKILLS.md](./SKILLS.md)
+> For the complete process, see [docs/DESIGN.md §4](./DESIGN.md#4-Processing Pipeline--Request Path)
