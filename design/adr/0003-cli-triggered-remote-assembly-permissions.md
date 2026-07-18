@@ -1,6 +1,6 @@
 # ADR-0003: CLI triggered remote assembly permissions
 
-- **Status**: Pending (Open)
+- **Status**: Accepted — see R-005 in `openstrata-meta/contracts/adr-resolutions.md`
 - **Date**: 2026-07-17
 - **Suggested by**: OpenStrata Architecture Group
 - **Repository**: ai-cli
@@ -28,7 +28,7 @@ This ADR solidifies "CLI-triggered remote assembly permissions" as an architectu
 ## To be aligned / Follow-ups (Follow-ups)
 
 - Alignment confirmation with `ai-platform-api`: clarify responsibility boundaries/interface contracts/data flow direction to avoid double writing or semantic drift.
-- Solidify the decision before the review at the corresponding stage, and write the final conclusion back into this ADR (the status is changed from "Pending" to "Adopted").
+- **Resolution (R-005)**: Accepted — `aictl apply` enforces server-side RBAC at `ai-platform-api`; the CLI holds no authority and presents the caller's OIDC token. Unauthorized requests are rejected with `403`. See `openstrata-meta/contracts/adr-resolutions.md`.
 
 ## Traceback
 
