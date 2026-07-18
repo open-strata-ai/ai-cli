@@ -11,23 +11,95 @@
 
 ```
 ai-cli/
-├── src/ or cmd/            #Application code (according to §15.5.2 DDD four layers)
+├── cmd/aictl/              # Entrypoint: builds the platform client, runs the CLI engine
+├── domain/                 #③ Domain layer (pure, zero deps)
+│   ├── model.go            #   CLIContext, Manifest, ModelView, EvalTaskResult, Profile, DefaultProfiles
+│   ├── port.go             #   PlatformClient port (Init/Up/Plan/Apply/Rollback/Model/App/Eval/Config/PortForward)
+│   ├── service.go          #   profile merge (§5.5), manifest schema validation (§8.3), read/write
+│   └── errors.go           #   CLIError + exit-code mapping (§7.3: 1/2/3/4/5)
+├── application/            #② Application layer (orchestration)
+│   └── usecase/            #   Init/Up/Plan/Apply/Rollback/Model/App/Eval/Config/Login/Logout/Debug
+├── infrastructure/         #④ Infrastructure layer (SPI adapters = ACL)
+│   ├── adapter/            #   PlatformClientImpl (HTTP: resolver/provisioner/platform-api/eval) +
+│   │                      #   GatewayClient (OpenAI-compatible); FakePlatformClient for offline tests
+│   ├── config/             #   config loader + config.yaml (SPECS §8.4 / §11.4)
+│   └── state/              #   ~/.openstrata/ state.json + AES-GCM token store (§12.2 S1/S2)
+├── presentation/           #① Access layer: output formatting
+│   └── formatter/          #   table / json / yaml renderers (§7.5)
+├── internal/               # CLI engine (no third-party deps)
+│   ├── cli/                #   hand-rolled command tree + execution engine (offline, no Cobra)
+│   └── yaml/               #   minimal dependency-free YAML codec (stdlib has none)
 ├── infrastructure/config/  #★ This repository SPI adapter local configuration fragment
-├── Dockerfile / helm/      #Deployment artifacts
+├── Dockerfile / Makefile   #Deployment artifacts
 ├── .github/                #Independent CI for each repository (build/test/scan/publish)
-├── arch/                   #★ Architectural positioning (the role/boundary of this repository in the layering)
-├── design/                 #★ Design rules + ADR (evolutionary AI coding guidelines)
-├── skills/                 #★ AI coding skills (for consumption by CodeBuddy/Cursor, etc.)
-└── specs/                  #★ Specifications and contracts (API/AgentSpec/SPI Schema)
+└── docs/                   #★ Architecture / design / skills / specs (ARCH.md, DESIGN.md, SKILLS.md, SPECS.md, adr/)
 ```
 
-## Responsibilities of this repository (TODO: completion)
+## Responsibilities of this repository
 
-Describe in 1-3 sentences: the role of this repository in the layered architecture, the **SPI ports** exposed/dependent, and the external open source components it relies on (default ✅/optional).
+`ai-cli` (binary `aictl`) is OpenStrata's unified developer / automation command
+line entrance (developer-tooling domain, §13.4 / §15.5.1). It converges local
+dev/debug and platform interaction (assembly, deployment, evaluation, config) into
+one command plane and is the **caller/driver** of `ai-dependency-resolver`,
+`ai-provisioning-engine`, `ai-platform-api`, `ai-gateway-core`, and
+`ai-eval-service` — it plans, it does not resolve/deploy/reason itself.
 
-## Local development (TODO: completion)
+- **Promised capabilities (R1–R8):** guided init, one-click up, assembly pass-through
+  (`plan`/`apply`/`rollback`), model management, app deploy/debug, eval tasks,
+  config read/write, local debug.
+- **Domain ports (domain-defined, infra-implemented):** `PlatformClient` (all
+  platform interactions); `GatewayClient` (OpenAI-compatible model ops).
+- **SPI adapters (ACL):** `PlatformClientImpl` aggregates the resolver /
+  provisioner / platform-api / eval-service control planes over HTTP; `GatewayClient`
+  talks to the gateway. Offline it ships a `FakePlatformClient` (used by tests).
+  `config` mirrors SPECS §11.5; `state` manages `~/.openstrata/` with AES-GCM token
+  encryption. `DefaultProfiles` is the anti-corrosion stand-in for
+  `openstrata-meta/profiles/*.yaml` (§12.2).
+- **External components (default ✅ / optional):** Redis ✅ (plan cache), PostgreSQL ✅
+  (plan/dep/eval persistence), OTel ✅ (trace) — offline defaults use the fake
+  client + in-process state, so no external service is required to run or test.
 
-- Build/Test/Run commands
-- How to access meta repository `dependencies/` dependency graph and `profiles/` presets
+## Local development
+
+Stdlib-only (no third-party modules) so the whole module is offline-verifiable:
+
+```bash
+make build           # go build ./...
+make lint            # go vet ./...
+make test            # go test ./...   (38 tests across 7 packages)
+make run             # go run ./cmd/aictl --help
+```
+
+The CLI defaults to an **offline** wiring: a `FakePlatformClient`, an in-process
+local state dir, and the embedded profile registry. Point `OPENSTRATA_ENDPOINT`
+at a running control plane (or run `aictl up`) for live calls.
+
+### Quickstart
+
+```bash
+# Generate openstrata.yaml from the starter profile (dry-run prints only)
+aictl init --profile starter --model qwen-cloud --tenant acme --dry-run
+
+# Write it, then inspect / edit
+aictl init --profile standard --model openai --tenant acme --config ./openstrata.yaml
+aictl config get model --config ./openstrata.yaml
+aictl config set tenant newco --config ./openstrata.yaml
+
+# Assembly pass-through (live: hits ai-dependency-resolver)
+aictl plan --enable gateway --tenant acme
+aictl apply --plan <checksum>
+
+# Models / apps / eval (live: gateway / platform-api / eval-service)
+aictl model list --output json
+aictl app deploy ./agent.yaml
+aictl eval submit ./task.yaml
+
+# Local diagnostics
+aictl debug
+aictl version --json
+```
+
+> Exit codes (SPECS §7.3): `0` success · `1` general · `2` config/param · `3`
+> platform not ready · `4` assembly conflict · `5` auth failed.
 
 > Evolutionary AI coding: The `docs/ (ARCH.md, DESIGN.md, SKILLS.md, SPECS.md, adr/)` of this repository is the source of truth shared by AI assistants and contributors; new decisions are recorded as ADRs in `docs/adr/`.
